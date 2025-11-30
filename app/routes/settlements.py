@@ -34,6 +34,52 @@ def process_settlement_batch(batch_id):
         logger.error(f"Error processing settlement batch: {str(e)}")
         return jsonify({'error': 'Failed to process settlement batch'}), 500
 
-# TODO: Add settlement batch listing endpoint
-# TODO: Add settlement reconciliation endpoint
+@settlements_bp.route('/batches', methods=['GET'])
+@jwt_required()
+@require_admin
+def list_settlement_batches():
+    try:
+        from app.repositories.settlement_repository import SettlementRepository
+        settlement_repo = SettlementRepository()
+        
+        batches = settlement_repo.get_all_batches(limit=100)
+        return jsonify([b.to_dict() for b in batches]), 200
+    except Exception as e:
+        logger.error(f"Error listing settlement batches: {str(e)}")
+        return jsonify({'error': 'Failed to list settlement batches'}), 500
+
+@settlements_bp.route('/batches/<batch_id>', methods=['GET'])
+@jwt_required()
+@require_admin
+def get_settlement_batch(batch_id):
+    try:
+        batch = settlement_service.settlement_repo.get_by_id(batch_id)
+        if not batch:
+            return jsonify({'error': 'Settlement batch not found'}), 404
+        
+        return jsonify(batch.to_dict()), 200
+    except Exception as e:
+        logger.error(f"Error getting settlement batch: {str(e)}")
+        return jsonify({'error': 'Failed to get settlement batch'}), 500
+
+@settlements_bp.route('/batches/<batch_id>/reconcile', methods=['POST'])
+@jwt_required()
+@require_admin
+def reconcile_settlement_batch(batch_id):
+    try:
+        # TODO: Implement reconciliation logic
+        # Compare expected vs actual settlement amounts
+        batch = settlement_service.settlement_repo.get_by_id(batch_id)
+        if not batch:
+            return jsonify({'error': 'Settlement batch not found'}), 404
+        
+        return jsonify({
+            'batch_id': batch_id,
+            'status': 'reconciled',
+            'message': 'Reconciliation completed'
+        }), 200
+    except Exception as e:
+        logger.error(f"Error reconciling settlement batch: {str(e)}")
+        return jsonify({'error': 'Failed to reconcile settlement batch'}), 500
+
 

@@ -30,3 +30,4 @@ def register_error_handlers(app):
         logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
         return jsonify({'error': 'An unexpected error occurred'}), 500
 
+

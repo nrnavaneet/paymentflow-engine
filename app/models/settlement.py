@@ -86,3 +86,4 @@ class Settlement(db.Model):
     def __repr__(self):
         return f'<Settlement {self.id}>'
 
+

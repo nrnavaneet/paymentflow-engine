@@ -74,3 +74,4 @@ class Transaction(db.Model):
     def __repr__(self):
         return f'<Transaction {self.id} {self.transaction_type} {self.amount} {self.currency}>'
 
+

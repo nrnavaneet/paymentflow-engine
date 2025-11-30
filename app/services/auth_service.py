@@ -84,3 +84,4 @@ class AuthService:
     def get_current_user(self, user_id: str) -> Optional[User]:
         return self.user_repo.get_by_id(user_id)
 
+

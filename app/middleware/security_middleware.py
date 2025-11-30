@@ -17,3 +17,4 @@ def setup_security(app):
         if request.path.startswith('/api/transactions') or request.path.startswith('/api/payments'):
             logger.info(f"Sensitive operation: {request.method} {request.path} from {request.remote_addr}")
 
+

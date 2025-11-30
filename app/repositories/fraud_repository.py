@@ -16,8 +16,15 @@ class FraudRepository(BaseRepository):
             FraudCheck.status == 'pending'
         ).limit(limit).all()
     
+    def get_by_user(self, user_id: str, limit: Optional[int] = None) -> List[FraudCheck]:
+        query = FraudCheck.query.filter_by(user_id=user_id)
+        if limit:
+            query = query.limit(limit)
+        return query.order_by(FraudCheck.created_at.desc()).all()
+    
     def get_latest_risk_score(self, user_id: str) -> Optional[RiskScore]:
         return RiskScore.query.filter_by(user_id=user_id).order_by(
             RiskScore.calculated_at.desc()
         ).first()
+
 

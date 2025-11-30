@@ -37,6 +37,72 @@ def get_payments():
         logger.error(f"Error getting payments: {str(e)}")
         return jsonify({'error': 'Failed to get payments'}), 500
 
-# TODO: Add payment refund endpoint
-# TODO: Add payment status check endpoint
+@payments_bp.route('/<payment_id>', methods=['GET'])
+@jwt_required()
+def get_payment(payment_id):
+    try:
+        user_id = get_jwt_identity()
+        payment = payment_service.payment_repo.get_by_id(payment_id)
+        
+        if not payment or payment.user_id != user_id:
+            return jsonify({'error': 'Payment not found'}), 404
+        
+        return jsonify(payment.to_dict()), 200
+    except Exception as e:
+        logger.error(f"Error getting payment: {str(e)}")
+        return jsonify({'error': 'Failed to get payment'}), 500
+
+@payments_bp.route('/<payment_id>/refund', methods=['POST'])
+@jwt_required()
+def refund_payment(payment_id):
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json() or {}
+        payment = payment_service.payment_repo.get_by_id(payment_id)
+        
+        if not payment or payment.user_id != user_id:
+            return jsonify({'error': 'Payment not found'}), 404
+        
+        if payment.status != 'completed':
+            return jsonify({'error': 'Only completed payments can be refunded'}), 400
+        
+        refund_amount = data.get('amount')
+        if refund_amount:
+            refund_amount = float(refund_amount)
+            if refund_amount > float(payment.amount):
+                return jsonify({'error': 'Refund amount cannot exceed payment amount'}), 400
+        else:
+            refund_amount = float(payment.amount)
+        
+        # Create refund transaction
+        refund_data = {
+            'transaction_type': 'refund',
+            'amount': refund_amount,
+            'currency': payment.currency,
+            'description': f'Refund for payment {payment.id}',
+            'reference_id': f"REF-{payment.id}",
+            'payment_id': payment.id,
+            'metadata': {'original_payment_id': payment.id}
+        }
+        
+        from app.services.transaction_service import TransactionService
+        transaction_service = TransactionService()
+        refund_transaction = transaction_service.create_transaction(
+            payment.account_id,
+            user_id,
+            refund_data
+        )
+        
+        # Update payment status
+        payment.status = 'refunded'
+        payment_service.payment_repo.update(payment)
+        
+        return jsonify({
+            'refund_transaction': refund_transaction.to_dict(),
+            'payment': payment.to_dict()
+        }), 201
+    except Exception as e:
+        logger.error(f"Error refunding payment: {str(e)}")
+        return jsonify({'error': 'Failed to refund payment'}), 500
+
 

@@ -16,3 +16,4 @@ def setup_logging(app):
         logger.info(f"Response: {request.method} {request.path} - {response.status_code} ({duration:.3f}s)")
         return response
 
+

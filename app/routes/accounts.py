@@ -48,3 +48,4 @@ def get_balance(account_id):
         logger.error(f"Error getting balance: {str(e)}")
         return jsonify({'error': 'Failed to get balance'}), 500
 
+

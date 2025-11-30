@@ -74,3 +74,4 @@ class KYCRecord(db.Model):
     def __repr__(self):
         return f'<KYCRecord {self.id} {self.status}>'
 
+

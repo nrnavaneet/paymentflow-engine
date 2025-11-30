@@ -19,4 +19,14 @@ class SettlementRepository(BaseRepository):
         db.session.add(batch)
         db.session.commit()
         return batch
+    
+    def get_all_batches(self, limit: Optional[int] = None) -> List[SettlementBatch]:
+        query = SettlementBatch.query
+        if limit:
+            query = query.limit(limit)
+        return query.order_by(SettlementBatch.created_at.desc()).all()
+    
+    def get_by_id(self, batch_id: str) -> Optional[SettlementBatch]:
+        return SettlementBatch.query.filter_by(id=batch_id).first()
+
 

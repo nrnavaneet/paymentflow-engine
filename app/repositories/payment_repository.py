@@ -19,3 +19,4 @@ class PaymentRepository(BaseRepository):
     def get_pending_payments(self, limit: int = 100) -> List[Payment]:
         return Payment.query.filter_by(status='pending').limit(limit).all()
 
+

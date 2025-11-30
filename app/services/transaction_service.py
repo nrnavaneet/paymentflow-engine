@@ -2,6 +2,8 @@ from app.repositories.transaction_repository import TransactionRepository
 from app.repositories.account_repository import AccountRepository
 from app.repositories.fraud_repository import FraudRepository
 from app.repositories.compliance_repository import ComplianceRepository
+from app.services.fraud_service import FraudService
+from app.services.compliance_service import ComplianceService
 from app.models.transaction import Transaction, TransactionStatus
 from app.models.audit_log import AuditLog
 from app import db
@@ -19,6 +21,8 @@ class TransactionService:
         self.account_repo = AccountRepository()
         self.fraud_repo = FraudRepository()
         self.compliance_repo = ComplianceRepository()
+        self.fraud_service = FraudService()
+        self.compliance_service = ComplianceService()
     
     def create_transaction(self, account_id: str, user_id: str, data: Dict) -> Transaction:
         """Create a new transaction with fraud and compliance checks"""
@@ -120,8 +124,25 @@ class TransactionService:
             
             transaction.status = TransactionStatus.COMPLETED
             transaction.processed_at = datetime.utcnow()
+        elif transaction.transaction_type == 'withdrawal':
+            # For withdrawals, check balance and freeze amount
+            source_wallet = self.account_repo.get_wallet(
+                transaction.account_id,
+                'main',
+                transaction.currency
+            )
+            if source_wallet and source_wallet.available_balance >= transaction.amount:
+                source_wallet.available_balance -= transaction.amount
+                source_wallet.frozen_balance += transaction.amount
+                transaction.source_wallet_id = source_wallet.id
+                transaction.status = TransactionStatus.PROCESSING
+            else:
+                transaction.status = TransactionStatus.FAILED
+                transaction.error_message = "Insufficient balance"
+        elif transaction.transaction_type == 'payment':
+            # Payments are handled by PaymentService
+            transaction.status = TransactionStatus.PROCESSING
         else:
-            # TODO: Handle other transaction types
             transaction.status = TransactionStatus.PROCESSING
         
         return transaction
@@ -135,15 +156,27 @@ class TransactionService:
     
     def _run_fraud_check(self, transaction: Transaction):
         """Run fraud detection check"""
-        # TODO: Implement comprehensive fraud detection
-        # This is a placeholder - should use FraudService
-        return None
+        try:
+            request_data = {
+                'ip_address': transaction.metadata.get('ip_address') if transaction.metadata else None,
+                'device_fingerprint': transaction.metadata.get('device_fingerprint') if transaction.metadata else None,
+                'user_agent': transaction.metadata.get('user_agent') if transaction.metadata else None,
+                'geolocation': transaction.metadata.get('geolocation') if transaction.metadata else None
+            }
+            fraud_check = self.fraud_service.check_transaction(transaction, request_data)
+            return fraud_check
+        except Exception as e:
+            logger.error(f"Fraud check failed: {str(e)}")
+            return None
     
     def _run_compliance_check(self, transaction: Transaction):
         """Run compliance check (AML, KYC, etc.)"""
-        # TODO: Implement compliance checks
-        # This is a placeholder - should use ComplianceService
-        return None
+        try:
+            compliance_check = self.compliance_service.check_transaction(transaction)
+            return compliance_check
+        except Exception as e:
+            logger.error(f"Compliance check failed: {str(e)}")
+            return None
     
     def _requires_compliance_check(self, amount: Decimal) -> bool:
         """Check if transaction requires compliance review"""
@@ -166,4 +199,5 @@ class TransactionService:
     # TODO: Add transaction reversal
     # TODO: Add transaction refund
     # TODO: Add transaction cancellation
+
 

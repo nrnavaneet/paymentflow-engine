@@ -38,6 +38,30 @@ def get_kyc_status():
         logger.error(f"Error getting KYC status: {str(e)}")
         return jsonify({'error': 'Failed to get KYC status'}), 500
 
-# TODO: Add compliance check endpoints
-# TODO: Add compliance reporting endpoints
+@compliance_bp.route('/checks', methods=['GET'])
+@jwt_required()
+def get_compliance_checks():
+    try:
+        user_id = get_jwt_identity()
+        checks = compliance_service.compliance_repo.get_by_user(user_id)
+        return jsonify([c.to_dict() for c in checks]), 200
+    except Exception as e:
+        logger.error(f"Error getting compliance checks: {str(e)}")
+        return jsonify({'error': 'Failed to get compliance checks'}), 500
+
+@compliance_bp.route('/checks/<check_id>', methods=['GET'])
+@jwt_required()
+def get_compliance_check(check_id):
+    try:
+        user_id = get_jwt_identity()
+        check = compliance_service.compliance_repo.get_by_id(check_id)
+        
+        if not check or check.user_id != user_id:
+            return jsonify({'error': 'Compliance check not found'}), 404
+        
+        return jsonify(check.to_dict()), 200
+    except Exception as e:
+        logger.error(f"Error getting compliance check: {str(e)}")
+        return jsonify({'error': 'Failed to get compliance check'}), 500
+
 

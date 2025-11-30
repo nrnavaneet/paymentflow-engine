@@ -37,3 +37,4 @@ class AccountRepository(BaseRepository):
             db.session.commit()
         return wallet
 
+

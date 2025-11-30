@@ -70,3 +70,4 @@ class Wallet(db.Model):
     def __repr__(self):
         return f'<Wallet {self.wallet_type} {self.currency}>'
 
+

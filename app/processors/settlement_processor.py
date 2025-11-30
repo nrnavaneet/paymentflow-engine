@@ -23,14 +23,29 @@ class SettlementProcessor:
     def process_pending_settlements(self):
         """Process pending settlement batches"""
         try:
-            # TODO: Get pending batches from queue
-            # TODO: Process each batch
-            # TODO: Handle failures and retries
-            logger.info("Processing pending settlements")
+            # Get pending batches
+            from app.repositories.settlement_repository import SettlementRepository
+            settlement_repo = SettlementRepository()
+            batches = settlement_repo.get_pending_batches()
+            
+            for batch in batches:
+                try:
+                    logger.info(f"Processing settlement batch: {batch.id}")
+                    processed_batch = self.settlement_service.process_settlement_batch(batch.id)
+                    logger.info(f"Settlement batch {batch.id} processed: {processed_batch.processed_count} transactions")
+                except Exception as e:
+                    logger.error(f"Error processing settlement batch {batch.id}: {str(e)}")
+                    # Mark batch as failed
+                    from app.models.settlement import SettlementStatus
+                    batch.status = SettlementStatus.FAILED
+                    settlement_repo.update(batch)
+            
+            logger.info(f"Processed {len(batches)} settlement batches")
         except Exception as e:
             logger.error(f"Error processing settlements: {str(e)}")
     
     # TODO: Add distributed processing support
     # TODO: Add settlement reconciliation
     # TODO: Add failure recovery
+
 

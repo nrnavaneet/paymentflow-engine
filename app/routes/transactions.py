@@ -70,7 +70,64 @@ def get_transaction(transaction_id):
         logger.error(f"Error getting transaction: {str(e)}")
         return jsonify({'error': 'Failed to get transaction'}), 500
 
-# TODO: Add transaction reversal endpoint
-# TODO: Add transaction refund endpoint
-# TODO: Add transaction cancellation endpoint
+@transactions_bp.route('/<transaction_id>/reverse', methods=['POST'])
+@jwt_required()
+def reverse_transaction(transaction_id):
+    try:
+        user_id = get_jwt_identity()
+        transaction = transaction_service.transaction_repo.get_by_id(transaction_id)
+        
+        if not transaction or transaction.user_id != user_id:
+            return jsonify({'error': 'Transaction not found'}), 404
+        
+        if transaction.status.value != 'completed':
+            return jsonify({'error': 'Only completed transactions can be reversed'}), 400
+        
+        # Create reversal transaction
+        reversal_data = {
+            'transaction_type': 'reversal',
+            'amount': transaction.amount,
+            'currency': transaction.currency,
+            'description': f'Reversal of transaction {transaction.reference_id}',
+            'reference_id': f"REV-{transaction.reference_id}",
+            'metadata': {'original_transaction_id': transaction.id}
+        }
+        
+        reversal = transaction_service.create_transaction(
+            transaction.account_id,
+            user_id,
+            reversal_data
+        )
+        
+        # Update original transaction
+        from app.models.transaction import TransactionStatus
+        transaction.status = TransactionStatus.REVERSED
+        transaction_service.transaction_repo.update(transaction)
+        
+        return jsonify(reversal.to_dict()), 201
+    except Exception as e:
+        logger.error(f"Error reversing transaction: {str(e)}")
+        return jsonify({'error': 'Failed to reverse transaction'}), 500
+
+@transactions_bp.route('/<transaction_id>/cancel', methods=['POST'])
+@jwt_required()
+def cancel_transaction(transaction_id):
+    try:
+        user_id = get_jwt_identity()
+        transaction = transaction_service.transaction_repo.get_by_id(transaction_id)
+        
+        if not transaction or transaction.user_id != user_id:
+            return jsonify({'error': 'Transaction not found'}), 404
+        
+        if transaction.status.value not in ['pending', 'processing']:
+            return jsonify({'error': 'Only pending or processing transactions can be cancelled'}), 400
+        
+        transaction.status = transaction_service.transaction_repo.model_class.TransactionStatus.CANCELLED
+        transaction_service.transaction_repo.update(transaction)
+        
+        return jsonify(transaction.to_dict()), 200
+    except Exception as e:
+        logger.error(f"Error cancelling transaction: {str(e)}")
+        return jsonify({'error': 'Failed to cancel transaction'}), 500
+
 

@@ -73,3 +73,4 @@ class RiskScore(db.Model):
     def __repr__(self):
         return f'<RiskScore {self.user_id} score={self.overall_score}>'
 
+

@@ -16,3 +16,4 @@ class ComplianceValidator:
     # TODO: Add document image validation
     # TODO: Add selfie validation
 
+

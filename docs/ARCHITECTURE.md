@@ -40,3 +40,4 @@ Transaction Creation → Wallet Update → Settlement Queue → Audit Log
 ## TODO: Add sequence diagrams
 ## TODO: Document fraud detection algorithms
 
+

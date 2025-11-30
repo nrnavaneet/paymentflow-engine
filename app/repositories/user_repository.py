@@ -18,3 +18,4 @@ class UserRepository(BaseRepository):
         # This is a placeholder - needs proper implementation
         return User.query.filter_by(kyc_status='pending').all()
 
+

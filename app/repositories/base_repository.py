@@ -33,3 +33,4 @@ class BaseRepository:
     def count(self) -> int:
         return self.model.query.count()
 
+
